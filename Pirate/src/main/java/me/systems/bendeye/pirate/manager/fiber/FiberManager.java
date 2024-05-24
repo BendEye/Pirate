@@ -6,20 +6,19 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
 public class FiberManager {
+    private List<Check> checks;
 
-    public static void main(String[] args) {
+    public FiberManager() {
+        checks = new ArrayList<>();
+        // Example checks (add more as needed)
+        checks.add(new ExampleCheck());
+    }
+
+    public void init() {
         ForkJoinPool pool = new ForkJoinPool();
-
-        // Create a list of checks
-        List<Check> checks = new ArrayList<>();
-        checks.add(new Check("Speed Hack", "Detects players moving too fast", 10, "/ban {player}", 1));
-        checks.add(new Check("Suspicious Movement", "Detects players suddenly stopping movement", 5, "/warn {player}", 2));
-
-        // Execute custom anti-cheat checks in their own fibers
         for (Check check : checks) {
             pool.execute(() -> check.execute());
         }
-
         pool.shutdown();
         try {
             pool.awaitTermination(10, TimeUnit.SECONDS);
@@ -27,18 +26,4 @@ public class FiberManager {
             e.printStackTrace();
         }
     }
-
-    static class Check {
-        private CheckInfo checkInfo;
-
-        public Check(String name, String description, int threshold, String action, int priority) {
-            this.checkInfo = new CheckInfo(name, description, threshold, action, priority);
-        }
-
-        public void execute() {
-            AntiCheatChecker antiCheatChecker = new AntiCheatChecker();
-            antiCheatChecker.check(this.checkInfo);
-        }
-    }
 }
-
