@@ -1,0 +1,4 @@
+name: Pirate
+version: '${project.version}'
+main: me.systems.bendeye.pirate.Pirate
+api-version: '1.20'
