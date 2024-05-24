@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
-publoc class SystemChecker {
+public class SystemChecker {
     // Simulated player movement speed
     private int playerMovementSpeed = 10;
 
