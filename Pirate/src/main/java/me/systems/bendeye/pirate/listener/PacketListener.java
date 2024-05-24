@@ -11,4 +11,10 @@ private class PacketListener implements com.retrooper.packetevents.event.PacketL
                 Player player = wrapper.getPlayer();
 }
 }
+
+                @Override
+        public void onPacketSend(com.retrooper.packetevents.packetwrappers.PacketWrapper packetWrapper) {
+            // Handle packet send events if needed
+        }
+    }
 }
