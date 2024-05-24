@@ -5,95 +5,82 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
 import java.util.concurrent.SubmissionPublisher;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
+
 public class FiberManager {
-    private ExecutorService executorService;
-    private SubmissionPublisher<Fiber> publisher;
-
-    public FiberManager() {
-        this.executorService = Executors.newFixedThreadPool(5); // You can adjust the pool size as needed
-        this.publisher = new SubmissionPublisher<>(executorService, Flow.defaultBufferSize());
-    }
-
-    public void submitFiber(Fiber fiber) {
-        publisher.submit(fiber);
-    }
-
-    public void start() {
-        publisher.subscribe(new FiberSubscriber());
-    }
-
-    public void stop() {
-        publisher.close();
-        executorService.shutdown();
-    }
-
-    private static class FiberSubscriber implements Flow.Subscriber<Fiber> {
-        private Flow.Subscription subscription;
-
-        @Override
-        public void onSubscribe(Flow.Subscription subscription) {
-            this.subscription = subscription;
-            subscription.request(1); // Request the first fiber
-        }
-
-        @Override
-        public void onNext(Fiber item) {
-            item.start();
-            subscription.request(1); // Request the next fiber
-        }
-
-        @Override
-        public void onError(Throwable throwable) {
-            throwable.printStackTrace();
-        }
-
-        @Override
-        public void onComplete() {
-            System.out.println("All fibers have been processed.");
-        }
-    }
 
     public static void main(String[] args) {
-        FiberManager fiberManager = new FiberManager();
+        List<Class<?>> classes = getClasses("me.systems.bendeye.checks.impl"); // CHECKS
+        ForkJoinPool pool = new ForkJoinPool();
 
-        // Submit some fibers
-        fiberManager.submitFiber(new Fiber("Fiber 1"));
-        fiberManager.submitFiber(new Fiber("Fiber 2"));
-        fiberManager.submitFiber(new Fiber("Fiber 3"));
-        fiberManager.submitFiber(new Fiber("Fiber 4"));
-        fiberManager.submitFiber(new Fiber("Fiber 5"));
+        for (Class<?> clazz : classes) {
+            pool.execute(() -> {
+                try {
+                    Object instance = clazz.getDeclaredConstructor().newInstance();
+                    if (instance instanceof Runnable) {
+                        ((Runnable) instance).run();
+                    } else {
+                        System.err.println(clazz.getName() + " does not implement Runnable.");
+                    }
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
 
-        // Start processing fibers
-        fiberManager.start();
-
-        // Do some other work...
-
-        // Stop the manager when done
-        fiberManager.stop();
-    }
-}
-
-class Fiber implements Runnable {
-    private String name;
-
-    public Fiber(String name) {
-        this.name = name;
-    }
-
-    @Override
-    public void run() {
-        System.out.println("Executing fiber: " + name);
-        // Simulate some work
+        pool.shutdown();
         try {
-            Thread.sleep(1000); // Simulate work for 1 second
+            pool.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        System.out.println("Fiber completed: " + name);
     }
 
-    public void start() {
-        Thread thread = Thread.startVirtualThread(this);
-        // You can also use: Thread thread = Thread.ofVirtual().start(this);
+    private static List<Class<?>> getClasses(String packageName) {
+        List<Class<?>> classes = new ArrayList<>();
+        try {
+            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            String path = packageName.replace('.', '/');
+            Enumeration<URL> resources = classLoader.getResources(path);
+            List<File> dirs = new ArrayList<>();
+            while (resources.hasMoreElements()) {
+                URL resource = resources.nextElement();
+                dirs.add(new File(resource.getFile()));
+            }
+            for (File directory : dirs) {
+                classes.addAll(findClasses(directory, packageName));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return classes;
+    }
+
+    private static List<Class<?>> findClasses(File directory, String packageName) throws ClassNotFoundException {
+        List<Class<?>> classes = new ArrayList<>();
+        if (!directory.exists()) {
+            return classes;
+        }
+        File[] files = directory.listFiles();
+        if (files == null) {
+            return classes;
+        }
+        for (File file : files) {
+            if (file.isDirectory()) {
+                assert !file.getName().contains(".");
+                classes.addAll(findClasses(file, packageName + "." + file.getName()));
+            } else if (file.getName().endsWith(".class")) {
+                classes.add(Class.forName(packageName + '.' + file.getName().substring(0, file.getName().length() - 6)));
+            }
+        }
+        return classes;
     }
 }
