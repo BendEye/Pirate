@@ -6,10 +6,9 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
 public class SystemChecker {
-    // Simulated player movement speed
-    private int playerMovementSpeed = 10;
 
-    // Method to perform anti-cheat check
+
+    // Method to perform anti-cheat check violations
     public void check(CheckInfo checkInfo) {
         // Simulate violation count
         int violations = simulateViolations(checkInfo);
@@ -26,15 +25,14 @@ public class SystemChecker {
     // Method to simulate violations (replace with actual check logic)
     private int simulateViolations(CheckInfo checkInfo) {
         // Simulate violation count based on some condition (e.g., player movement speed)
-        if (checkInfo.getName().equals("Speed Hack")) {
+        if (checkInfo.getName().getThreshold()) >= priority.setLimit()) {
             // Increase violation count if movement speed is above threshold
-            if (playerMovementSpeed > checkInfo.getThreshold()) {
-                return 1;
+            if (checkInfo.getThreshold()) {
+                return +1D;
             }
-        } else if (checkInfo.getName().equals("Suspicious Movement")) {
-            // Increase violation count if movement speed is suddenly zero
-            if (playerMovementSpeed == 0) {
-                return 1;
+        } else if (checkInfo.getName().getThreshold()) < priority.setLimit()) {
+            // decrease if violation count is decayed after a period of time.
+                return -0.15D;
             }
         }
         return 0;
